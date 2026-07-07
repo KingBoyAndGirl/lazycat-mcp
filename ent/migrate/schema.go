@@ -91,6 +91,7 @@ var (
 		{Name: "slug", Type: field.TypeString, Unique: true, Size: 180},
 		{Name: "type", Type: field.TypeEnum, Enums: []string{"lazycat", "custom"}, Default: "lazycat"},
 		{Name: "app_id", Type: field.TypeString, Size: 180, Default: ""},
+		{Name: "owner_user_id", Type: field.TypeString, Size: 120, Default: ""},
 		{Name: "deploy_id", Type: field.TypeString, Nullable: true, Size: 180},
 		{Name: "app_title", Type: field.TypeString, Nullable: true, Size: 180},
 		{Name: "resource_id", Type: field.TypeString, Nullable: true, Size: 80},
@@ -125,9 +126,14 @@ var (
 				Columns: []*schema.Column{UpstreamProvidersColumns[5]},
 			},
 			{
+				Name:    "upstreamprovider_owner_user_id",
+				Unique:  false,
+				Columns: []*schema.Column{UpstreamProvidersColumns[6]},
+			},
+			{
 				Name:    "upstreamprovider_enabled",
 				Unique:  false,
-				Columns: []*schema.Column{UpstreamProvidersColumns[13]},
+				Columns: []*schema.Column{UpstreamProvidersColumns[14]},
 			},
 		},
 	}

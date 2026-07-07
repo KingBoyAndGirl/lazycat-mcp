@@ -190,24 +190,30 @@ func init() {
 	upstreamprovider.DefaultAppID = upstreamproviderDescAppID.Default.(string)
 	// upstreamprovider.AppIDValidator is a validator for the "app_id" field. It is called by the builders before save.
 	upstreamprovider.AppIDValidator = upstreamproviderDescAppID.Validators[0].(func(string) error)
+	// upstreamproviderDescOwnerUserID is the schema descriptor for owner_user_id field.
+	upstreamproviderDescOwnerUserID := upstreamproviderFields[5].Descriptor()
+	// upstreamprovider.DefaultOwnerUserID holds the default value on creation for the owner_user_id field.
+	upstreamprovider.DefaultOwnerUserID = upstreamproviderDescOwnerUserID.Default.(string)
+	// upstreamprovider.OwnerUserIDValidator is a validator for the "owner_user_id" field. It is called by the builders before save.
+	upstreamprovider.OwnerUserIDValidator = upstreamproviderDescOwnerUserID.Validators[0].(func(string) error)
 	// upstreamproviderDescDeployID is the schema descriptor for deploy_id field.
-	upstreamproviderDescDeployID := upstreamproviderFields[5].Descriptor()
+	upstreamproviderDescDeployID := upstreamproviderFields[6].Descriptor()
 	// upstreamprovider.DeployIDValidator is a validator for the "deploy_id" field. It is called by the builders before save.
 	upstreamprovider.DeployIDValidator = upstreamproviderDescDeployID.Validators[0].(func(string) error)
 	// upstreamproviderDescAppTitle is the schema descriptor for app_title field.
-	upstreamproviderDescAppTitle := upstreamproviderFields[6].Descriptor()
+	upstreamproviderDescAppTitle := upstreamproviderFields[7].Descriptor()
 	// upstreamprovider.AppTitleValidator is a validator for the "app_title" field. It is called by the builders before save.
 	upstreamprovider.AppTitleValidator = upstreamproviderDescAppTitle.Validators[0].(func(string) error)
 	// upstreamproviderDescResourceID is the schema descriptor for resource_id field.
-	upstreamproviderDescResourceID := upstreamproviderFields[7].Descriptor()
+	upstreamproviderDescResourceID := upstreamproviderFields[8].Descriptor()
 	// upstreamprovider.ResourceIDValidator is a validator for the "resource_id" field. It is called by the builders before save.
 	upstreamprovider.ResourceIDValidator = upstreamproviderDescResourceID.Validators[0].(func(string) error)
 	// upstreamproviderDescBaseURL is the schema descriptor for base_url field.
-	upstreamproviderDescBaseURL := upstreamproviderFields[8].Descriptor()
+	upstreamproviderDescBaseURL := upstreamproviderFields[9].Descriptor()
 	// upstreamprovider.BaseURLValidator is a validator for the "base_url" field. It is called by the builders before save.
 	upstreamprovider.BaseURLValidator = upstreamproviderDescBaseURL.Validators[0].(func(string) error)
 	// upstreamproviderDescEndpoint is the schema descriptor for endpoint field.
-	upstreamproviderDescEndpoint := upstreamproviderFields[9].Descriptor()
+	upstreamproviderDescEndpoint := upstreamproviderFields[10].Descriptor()
 	// upstreamprovider.DefaultEndpoint holds the default value on creation for the endpoint field.
 	upstreamprovider.DefaultEndpoint = upstreamproviderDescEndpoint.Default.(string)
 	// upstreamprovider.EndpointValidator is a validator for the "endpoint" field. It is called by the builders before save.
@@ -227,19 +233,19 @@ func init() {
 		}
 	}()
 	// upstreamproviderDescHeaders is the schema descriptor for headers field.
-	upstreamproviderDescHeaders := upstreamproviderFields[10].Descriptor()
+	upstreamproviderDescHeaders := upstreamproviderFields[11].Descriptor()
 	// upstreamprovider.DefaultHeaders holds the default value on creation for the headers field.
 	upstreamprovider.DefaultHeaders = upstreamproviderDescHeaders.Default.(string)
 	// upstreamproviderDescEnabled is the schema descriptor for enabled field.
-	upstreamproviderDescEnabled := upstreamproviderFields[12].Descriptor()
+	upstreamproviderDescEnabled := upstreamproviderFields[13].Descriptor()
 	// upstreamprovider.DefaultEnabled holds the default value on creation for the enabled field.
 	upstreamprovider.DefaultEnabled = upstreamproviderDescEnabled.Default.(bool)
 	// upstreamproviderDescCreatedAt is the schema descriptor for created_at field.
-	upstreamproviderDescCreatedAt := upstreamproviderFields[14].Descriptor()
+	upstreamproviderDescCreatedAt := upstreamproviderFields[15].Descriptor()
 	// upstreamprovider.DefaultCreatedAt holds the default value on creation for the created_at field.
 	upstreamprovider.DefaultCreatedAt = upstreamproviderDescCreatedAt.Default.(func() time.Time)
 	// upstreamproviderDescUpdatedAt is the schema descriptor for updated_at field.
-	upstreamproviderDescUpdatedAt := upstreamproviderFields[15].Descriptor()
+	upstreamproviderDescUpdatedAt := upstreamproviderFields[16].Descriptor()
 	// upstreamprovider.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	upstreamprovider.DefaultUpdatedAt = upstreamproviderDescUpdatedAt.Default.(func() time.Time)
 	// upstreamprovider.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.

@@ -185,6 +185,7 @@ type ProviderInput struct {
 	Description string           `json:"description"`
 	Slug        string           `json:"slug"`
 	AppID       string           `json:"app_id"`
+	OwnerUserID string           `json:"owner_user_id,omitempty"`
 	DeployID    string           `json:"deploy_id"`
 	AppTitle    string           `json:"app_title"`
 	ResourceID  string           `json:"resource_id"`
@@ -202,31 +203,32 @@ type ProviderHeader struct {
 }
 
 type ProviderDTO struct {
-	ID             int        `json:"id"`
-	Type           string     `json:"type"`
-	Name           string     `json:"name"`
-	Description    string     `json:"description,omitempty"`
-	Slug           string     `json:"slug"`
-	AppID          string     `json:"app_id"`
-	DeployID       string     `json:"deploy_id,omitempty"`
-	AppTitle       string     `json:"app_title,omitempty"`
-	ResourceID     string     `json:"resource_id,omitempty"`
-	BaseURL        string     `json:"base_url,omitempty"`
-	Endpoint       string     `json:"endpoint"`
-	Transport      string     `json:"transport"`
-	Enabled        bool       `json:"enabled"`
-	PublicEndpoint string     `json:"public_endpoint"`
-	HeaderNames    []string   `json:"header_names,omitempty"`
-	HeaderCount    int        `json:"header_count"`
-	AggregateOK    bool       `json:"aggregate_ok"`
-	AggregateError string     `json:"aggregate_error,omitempty"`
-	Kind           string     `json:"kind,omitempty"`
-	SkillTitle     string     `json:"skill_title,omitempty"`
-	SkillSummary   string     `json:"skill_summary,omitempty"`
-	SkillPrompts   []string   `json:"skill_prompts,omitempty"`
-	LastUsedAt       *time.Time `json:"last_used_at,omitempty"`
-	CreatedAt        time.Time  `json:"created_at"`
-	UpdatedAt        time.Time  `json:"updated_at"`
+	ID                int        `json:"id"`
+	Type              string     `json:"type"`
+	Name              string     `json:"name"`
+	Description       string     `json:"description,omitempty"`
+	Slug              string     `json:"slug"`
+	AppID             string     `json:"app_id"`
+	OwnerUserID       string     `json:"owner_user_id,omitempty"`
+	DeployID          string     `json:"deploy_id,omitempty"`
+	AppTitle          string     `json:"app_title,omitempty"`
+	ResourceID        string     `json:"resource_id,omitempty"`
+	BaseURL           string     `json:"base_url,omitempty"`
+	Endpoint          string     `json:"endpoint"`
+	Transport         string     `json:"transport"`
+	Enabled           bool       `json:"enabled"`
+	PublicEndpoint    string     `json:"public_endpoint"`
+	HeaderNames       []string   `json:"header_names,omitempty"`
+	HeaderCount       int        `json:"header_count"`
+	AggregateOK       bool       `json:"aggregate_ok"`
+	AggregateError    string     `json:"aggregate_error,omitempty"`
+	Kind              string     `json:"kind,omitempty"`
+	SkillTitle        string     `json:"skill_title,omitempty"`
+	SkillSummary      string     `json:"skill_summary,omitempty"`
+	SkillPrompts      []string   `json:"skill_prompts,omitempty"`
+	LastUsedAt        *time.Time `json:"last_used_at,omitempty"`
+	CreatedAt         time.Time  `json:"created_at"`
+	UpdatedAt         time.Time  `json:"updated_at"`
 	UpstreamToolNames []string   `json:"upstream_tool_names,omitempty"`
 }
 
@@ -261,6 +263,32 @@ func (s *ProviderService) List(ctx context.Context) ([]ProviderDTO, error) {
 	return out, nil
 }
 
+func (s *ProviderService) ListForOwner(ctx context.Context, ownerUserID string) ([]ProviderDTO, error) {
+	ownerUserID = strings.TrimSpace(ownerUserID)
+	if ownerUserID == "" {
+		return []ProviderDTO{}, nil
+	}
+	rows, err := s.db.UpstreamProvider.Query().
+		Where(upstreamprovider.OwnerUserIDEQ(ownerUserID)).
+		Order(upstreamprovider.ByCreatedAt(sql.OrderDesc())).All(ctx)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]ProviderDTO, 0, len(rows))
+	for _, row := range rows {
+		out = append(out, providerDTO(row))
+	}
+	return out, nil
+}
+
+func (s *ProviderService) Get(ctx context.Context, id int) (ProviderDTO, error) {
+	row, err := s.db.UpstreamProvider.Get(ctx, id)
+	if err != nil {
+		return ProviderDTO{}, err
+	}
+	return providerDTO(row), nil
+}
+
 func (s *ProviderService) EnabledPublic(ctx context.Context) ([]PublicProviderDTO, error) {
 	rows, err := s.db.UpstreamProvider.Query().
 		Where(upstreamprovider.EnabledEQ(true)).
@@ -292,6 +320,7 @@ func (s *ProviderService) Create(ctx context.Context, input ProviderInput) (Prov
 		SetProviderType(upstreamprovider.ProviderType(normalized.Type)).
 		SetName(normalized.Name).
 		SetSlug(normalized.Slug).
+		SetOwnerUserID(normalized.OwnerUserID).
 		SetEndpoint(normalized.Endpoint).
 		SetHeaders(normalized.headersJSON).
 		SetTransport(upstreamprovider.Transport(normalized.Transport)).
@@ -333,6 +362,9 @@ func (s *ProviderService) Update(ctx context.Context, id int, input ProviderInpu
 	}
 	if normalized.AppID != "" {
 		update.SetAppID(normalized.AppID)
+	}
+	if normalized.OwnerUserID != "" {
+		update.SetOwnerUserID(normalized.OwnerUserID)
 	}
 	if normalized.BaseURL != "" {
 		update.SetBaseURL(normalized.BaseURL)
@@ -396,6 +428,7 @@ func providerDTO(row *ent.UpstreamProvider) ProviderDTO {
 		Name:           row.Name,
 		Slug:           row.Slug,
 		AppID:          row.AppID,
+		OwnerUserID:    row.OwnerUserID,
 		Endpoint:       row.Endpoint,
 		Transport:      row.Transport.String(),
 		Enabled:        row.Enabled,
@@ -460,6 +493,7 @@ func normalizeProviderInput(input ProviderInput, requireAll bool) (ProviderInput
 		Description: strings.TrimSpace(input.Description),
 		Slug:        strings.TrimSpace(input.Slug),
 		AppID:       strings.TrimSpace(input.AppID),
+		OwnerUserID: strings.TrimSpace(input.OwnerUserID),
 		DeployID:    strings.TrimSpace(input.DeployID),
 		AppTitle:    strings.TrimSpace(input.AppTitle),
 		ResourceID:  strings.TrimSpace(input.ResourceID),

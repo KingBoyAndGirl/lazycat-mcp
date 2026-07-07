@@ -279,13 +279,15 @@ func (a *App) handleTokenByID(w http.ResponseWriter, r *http.Request, rawID stri
 }
 
 func (a *App) handleListProviders(w http.ResponseWriter, r *http.Request) {
-	providers, err := a.providers.List(r.Context())
+	visibleApps := a.visibleLazycatAppIDs(r)
+	providers, err := a.providers.ListForOwner(r.Context(), currentLazycatUserID(r))
 	if err != nil {
 		writeAPIError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 	aggregated := a.aggregatedSlugs()
 	errs := a.aggregateErrors()
+	providers = filterProvidersByVisibleApps(providers, visibleApps)
 	for i := range providers {
 		providers[i].AggregateOK = aggregated[providers[i].Slug]
 		providers[i].AggregateError = errs[providers[i].Slug]
@@ -325,6 +327,11 @@ func (a *App) handleCreateProvider(w http.ResponseWriter, r *http.Request) {
 		writeAPIError(w, http.StatusBadRequest, err.Error())
 		return
 	}
+	input.OwnerUserID = currentLazycatUserID(r)
+	if err := a.validateProviderVisibleForRequest(r, input); err != nil {
+		writeAPIError(w, http.StatusForbidden, err.Error())
+		return
+	}
 	provider, err := a.providers.Create(r.Context(), input)
 	if err != nil {
 		writeAPIError(w, statusFromProviderError(err), err.Error())
@@ -347,6 +354,10 @@ func (a *App) handleProviderByID(w http.ResponseWriter, r *http.Request, rawID s
 			writeAPIError(w, http.StatusBadRequest, err.Error())
 			return
 		}
+		if err := a.validateProviderUpdateVisibleForRequest(r, id, input); err != nil {
+			writeAPIError(w, http.StatusForbidden, err.Error())
+			return
+		}
 		provider, err := a.providers.Update(r.Context(), id, input)
 		if err != nil {
 			writeAPIError(w, statusFromProviderError(err), err.Error())
@@ -355,6 +366,10 @@ func (a *App) handleProviderByID(w http.ResponseWriter, r *http.Request, rawID s
 		a.refreshUpstreamToolsBestEffort(r.Context())
 		writeJSON(w, http.StatusOK, map[string]any{"provider": provider})
 	case http.MethodDelete:
+		if err := a.validateProviderIDVisibleForRequest(r, id); err != nil {
+			writeAPIError(w, http.StatusForbidden, err.Error())
+			return
+		}
 		if err := a.providers.Delete(r.Context(), id); err != nil {
 			writeAPIError(w, statusFromEntError(err), err.Error())
 			return
@@ -479,7 +494,6 @@ func statusFromEntError(err error) int {
 	return http.StatusInternalServerError
 }
 
-
 func (a *App) handleBatchProviders(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		IDs       []int  `json:"ids"`
@@ -508,6 +522,12 @@ func (a *App) handleBatchProviders(w http.ResponseWriter, r *http.Request) {
 
 	for _, id := range req.IDs {
 		res := result{ID: id, Status: "ok"}
+		if err := a.validateProviderIDVisibleForRequest(r, id); err != nil {
+			res.Status = "error"
+			res.Error = err.Error()
+			results = append(results, res)
+			continue
+		}
 		switch req.Action {
 		case "enable":
 			input := ProviderInput{Enabled: boolPtr(true)}
@@ -547,8 +567,78 @@ func (a *App) handleBatchProviders(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"results": results})
 }
 
-func boolPtr(v bool) *bool { return &v }
+func currentLazycatUserID(r *http.Request) string {
+	return strings.TrimSpace(r.Header.Get("X-HC-USER-ID"))
+}
 
+func (a *App) visibleLazycatAppIDs(r *http.Request) map[string]bool {
+	visible := map[string]bool{selfPackageID: true}
+	for appID := range a.lazycatAppsByID(r) {
+		visible[appID] = true
+	}
+	return visible
+}
+
+func filterProvidersByVisibleApps(providers []ProviderDTO, visibleApps map[string]bool) []ProviderDTO {
+	out := providers[:0]
+	for _, p := range providers {
+		if p.Type == "lazycat" {
+			if !visibleApps[p.AppID] {
+				continue
+			}
+		}
+		out = append(out, p)
+	}
+	return out
+}
+
+func (a *App) validateProviderVisibleForRequest(r *http.Request, input ProviderInput) error {
+	ownerUserID := currentLazycatUserID(r)
+	if ownerUserID == "" {
+		return errors.New("current lazycat user is required")
+	}
+	if strings.TrimSpace(input.OwnerUserID) != "" && strings.TrimSpace(input.OwnerUserID) != ownerUserID {
+		return errors.New("provider owner does not match current user")
+	}
+	if strings.TrimSpace(input.Type) != "" && strings.TrimSpace(input.Type) != "lazycat" {
+		return nil
+	}
+	appID := strings.TrimSpace(input.AppID)
+	if appID == "" {
+		return nil
+	}
+	if !a.visibleLazycatAppIDs(r)[appID] {
+		return errors.New("provider app is not visible to current user")
+	}
+	return nil
+}
+
+func (a *App) validateProviderIDVisibleForRequest(r *http.Request, id int) error {
+	ownerUserID := currentLazycatUserID(r)
+	if ownerUserID == "" {
+		return errors.New("current lazycat user is required")
+	}
+	provider, err := a.providers.Get(r.Context(), id)
+	if err != nil {
+		return err
+	}
+	if provider.OwnerUserID != ownerUserID {
+		return errors.New("provider is not owned by current user")
+	}
+	if provider.Type == "lazycat" && !a.visibleLazycatAppIDs(r)[provider.AppID] {
+		return errors.New("provider is not visible to current user")
+	}
+	return nil
+}
+
+func (a *App) validateProviderUpdateVisibleForRequest(r *http.Request, id int, input ProviderInput) error {
+	if err := a.validateProviderIDVisibleForRequest(r, id); err != nil {
+		return err
+	}
+	return a.validateProviderVisibleForRequest(r, input)
+}
+
+func boolPtr(v bool) *bool { return &v }
 
 func (a *App) cleanupOrphanProviders(ctx context.Context, installed map[string]*sys.AppInfo) {
 	providers, err := a.providers.List(ctx)
@@ -567,7 +657,6 @@ func (a *App) cleanupOrphanProviders(ctx context.Context, installed map[string]*
 		}
 	}
 }
-
 
 func (a *App) selfToolNames() []string {
 	names := []string{

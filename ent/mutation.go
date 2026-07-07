@@ -1948,6 +1948,7 @@ type UpstreamProviderMutation struct {
 	slug          *string
 	provider_type *upstreamprovider.ProviderType
 	app_id        *string
+	owner_user_id *string
 	deploy_id     *string
 	app_title     *string
 	resource_id   *string
@@ -2254,6 +2255,42 @@ func (m *UpstreamProviderMutation) OldAppID(ctx context.Context) (v string, err 
 // ResetAppID resets all changes to the "app_id" field.
 func (m *UpstreamProviderMutation) ResetAppID() {
 	m.app_id = nil
+}
+
+// SetOwnerUserID sets the "owner_user_id" field.
+func (m *UpstreamProviderMutation) SetOwnerUserID(s string) {
+	m.owner_user_id = &s
+}
+
+// OwnerUserID returns the value of the "owner_user_id" field in the mutation.
+func (m *UpstreamProviderMutation) OwnerUserID() (r string, exists bool) {
+	v := m.owner_user_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOwnerUserID returns the old "owner_user_id" field's value of the UpstreamProvider entity.
+// If the UpstreamProvider object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *UpstreamProviderMutation) OldOwnerUserID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOwnerUserID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOwnerUserID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOwnerUserID: %w", err)
+	}
+	return oldValue.OwnerUserID, nil
+}
+
+// ResetOwnerUserID resets all changes to the "owner_user_id" field.
+func (m *UpstreamProviderMutation) ResetOwnerUserID() {
+	m.owner_user_id = nil
 }
 
 // SetDeployID sets the "deploy_id" field.
@@ -2751,7 +2788,7 @@ func (m *UpstreamProviderMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *UpstreamProviderMutation) Fields() []string {
-	fields := make([]string, 0, 16)
+	fields := make([]string, 0, 17)
 	if m.name != nil {
 		fields = append(fields, upstreamprovider.FieldName)
 	}
@@ -2766,6 +2803,9 @@ func (m *UpstreamProviderMutation) Fields() []string {
 	}
 	if m.app_id != nil {
 		fields = append(fields, upstreamprovider.FieldAppID)
+	}
+	if m.owner_user_id != nil {
+		fields = append(fields, upstreamprovider.FieldOwnerUserID)
 	}
 	if m.deploy_id != nil {
 		fields = append(fields, upstreamprovider.FieldDeployID)
@@ -2818,6 +2858,8 @@ func (m *UpstreamProviderMutation) Field(name string) (ent.Value, bool) {
 		return m.ProviderType()
 	case upstreamprovider.FieldAppID:
 		return m.AppID()
+	case upstreamprovider.FieldOwnerUserID:
+		return m.OwnerUserID()
 	case upstreamprovider.FieldDeployID:
 		return m.DeployID()
 	case upstreamprovider.FieldAppTitle:
@@ -2859,6 +2901,8 @@ func (m *UpstreamProviderMutation) OldField(ctx context.Context, name string) (e
 		return m.OldProviderType(ctx)
 	case upstreamprovider.FieldAppID:
 		return m.OldAppID(ctx)
+	case upstreamprovider.FieldOwnerUserID:
+		return m.OldOwnerUserID(ctx)
 	case upstreamprovider.FieldDeployID:
 		return m.OldDeployID(ctx)
 	case upstreamprovider.FieldAppTitle:
@@ -2924,6 +2968,13 @@ func (m *UpstreamProviderMutation) SetField(name string, value ent.Value) error 
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetAppID(v)
+		return nil
+	case upstreamprovider.FieldOwnerUserID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOwnerUserID(v)
 		return nil
 	case upstreamprovider.FieldDeployID:
 		v, ok := value.(string)
@@ -3104,6 +3155,9 @@ func (m *UpstreamProviderMutation) ResetField(name string) error {
 		return nil
 	case upstreamprovider.FieldAppID:
 		m.ResetAppID()
+		return nil
+	case upstreamprovider.FieldOwnerUserID:
+		m.ResetOwnerUserID()
 		return nil
 	case upstreamprovider.FieldDeployID:
 		m.ResetDeployID()
